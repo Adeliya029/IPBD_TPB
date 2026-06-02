@@ -1,3 +1,4 @@
+```text
 ipbd_tbp/
 │
 ├── .env                          # Environment variables (API keys, credentials)
@@ -46,3 +47,4 @@ ipbd_tbp/
 │   └── init.sql                  # Schema database PostgreSQL
 │
 └── venv/                         # Python virtual environment
+```

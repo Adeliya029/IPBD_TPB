@@ -1,2 +1,7 @@
 requests
 kafka-python
+scikit-learn
+prometheus-client
+psutil
+cryptography
+PyJWT

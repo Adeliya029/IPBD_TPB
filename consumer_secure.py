@@ -4,9 +4,9 @@ Secure Consumer dengan ML Inference, Monitoring, dan Security
 
 import json
 from kafka import KafkaConsumer
-from ml_model import WeatherAnomalyDetector
-from security import AuthenticationManager, AuditLogger, DataProtection
-from monitoring import MetricsCollector, StructuredLogger, PerformanceMonitor, start_metrics_server
+from models.ml_model import WeatherAnomalyDetector
+from security.security import AuthenticationManager, AuditLogger, DataProtection
+from logs.monitoring import MetricsCollector, StructuredLogger, PerformanceMonitor, start_metrics_server
 import sys
 import time
 
@@ -58,7 +58,7 @@ try:
 except FileNotFoundError:
     logger.warning("ML model not found, training new model...", user=username)
     print("⚠ Model not found, training new model...")
-    from ml_model import train_initial_model
+    from models.ml_model import train_initial_model
     ml_detector = train_initial_model()
     print("✓ New model trained\n")
 except Exception as e:

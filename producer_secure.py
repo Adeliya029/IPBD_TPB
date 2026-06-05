@@ -6,8 +6,8 @@ import requests
 import json
 import time
 from kafka import KafkaProducer
-from security import AuthenticationManager, DataEncryption, AuditLogger, DataProtection
-from monitoring import MetricsCollector, StructuredLogger, PerformanceMonitor, start_metrics_server
+from security.security import AuthenticationManager, DataEncryption, AuditLogger, DataProtection
+from logs.monitoring import MetricsCollector, StructuredLogger, PerformanceMonitor, start_metrics_server
 import sys
 
 # Setup logging dan monitoring

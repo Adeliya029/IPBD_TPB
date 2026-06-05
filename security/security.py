@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class DataEncryption:
     """Enkripsi/dekripsi data sensitif"""
     
-    def __init__(self, key_file='secrets/encryption.key'):
+    def __init__(self, key_file='security/secrets/encryption.key'):
         self.key_file = key_file
         self.cipher = None
         self._load_or_create_key()
@@ -228,7 +228,7 @@ class DataProtection:
 class AuditLogger:
     """Audit logging untuk tracking security events"""
     
-    def __init__(self, log_file='logs/audit.log'):
+    def __init__(self, log_file='logs/data/audit.log'):
         self.log_file = log_file
         os.makedirs(os.path.dirname(log_file), exist_ok=True)
         

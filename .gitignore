@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Models
+models/saved/*.pkl
+models/saved/*.joblib
+models/saved/*.h5
+
+# Security
+security/secrets/*.key
+security/secrets/*.pem
+security/secrets/*.crt
+
+# Logs
+logs/data/*.log
+logs/data/*.txt
+
+# Environment
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data
+data/*.csv
+data/*.json
+data/*.parquet
+*.db
+*.sqlite
+
+# Jupyter
+.ipynb_checkpoints/

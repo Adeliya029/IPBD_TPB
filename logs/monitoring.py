@@ -16,7 +16,7 @@ import os
 class StructuredLogger:
     """Custom logger yang menghasilkan structured JSON logs"""
     
-    def __init__(self, name, log_file='logs/application.log'):
+    def __init__(self, name, log_file='logs/data/application.log'):
         self.logger = logging.getLogger(name)
         self.logger.setLevel(logging.INFO)
         
@@ -223,7 +223,7 @@ class PerformanceMonitor:
 class ErrorTracker:
     """Track dan analyze errors dalam pipeline"""
     
-    def __init__(self, log_file='logs/errors.log'):
+    def __init__(self, log_file='logs/data/errors.log'):
         self.error_log = log_file
         os.makedirs(os.path.dirname(log_file), exist_ok=True)
         

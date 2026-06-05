@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class WeatherAnomalyDetector:
     """Model ML untuk deteksi anomali cuaca"""
     
-    def __init__(self, model_path='models/anomaly_detector.pkl'):
+    def __init__(self, model_path='models/saved/anomaly_detector.pkl'):
         self.model_path = model_path
         self.model = None
         self.scaler = StandardScaler()

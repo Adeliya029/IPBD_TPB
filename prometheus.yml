@@ -1,24 +1,56 @@
-# Prometheus Configuration
+# Prometheus Configuration — IPBD Harga Pangan
+# Scrape metrics dari semua komponen pipeline
+
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
+  external_labels:
+    project: 'ipbd-harga-pangan'
+    environment: 'local'
 
 scrape_configs:
-  # Producer metrics
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          component: 'monitoring'
+
+  # Producer metrics (streaming)
   - job_name: 'weather-producer'
     static_configs:
       - targets: ['host.docker.internal:8001']
         labels:
           component: 'producer'
+          pipeline: 'streaming'
 
-  # Consumer metrics
+  # Consumer metrics (streaming)
   - job_name: 'weather-consumer'
     static_configs:
       - targets: ['host.docker.internal:8002']
         labels:
           component: 'consumer'
+          pipeline: 'streaming'
 
-  # Prometheus self-monitoring
-  - job_name: 'prometheus'
+  # Prediction consumer metrics
+  - job_name: 'price-prediction'
     static_configs:
-      - targets: ['localhost:9090']
+      - targets: ['host.docker.internal:8003']
+        labels:
+          component: 'prediction'
+          pipeline: 'ml'
+
+  # Batch pipeline metrics (jika ada metrics endpoint)
+  - job_name: 'batch-pipeline'
+    static_configs:
+      - targets: ['host.docker.internal:8004']
+        labels:
+          component: 'batch'
+          pipeline: 'batch'
+
+  # Grafana self-monitoring
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+        labels:
+          component: 'grafana'

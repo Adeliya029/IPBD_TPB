@@ -1,6 +1,13 @@
 """
 Monitoring & Logging Module
 Prometheus metrics, structured logging, dan performance monitoring
+
+Log Severity Levels (sesuai rubrik):
+- DEBUG   : Informasi detail untuk debugging
+- INFO    : Informasi umum proses normal
+- WARNING : Peringatan — proses lanjut tapi ada anomali
+- ERROR   : Error — satu komponen gagal
+- FATAL   : Error kritis — pipeline berhenti
 """
 
 import logging
@@ -55,20 +62,52 @@ class StructuredLogger:
             
             return json.dumps(log_data)
     
+    def debug(self, message, **extra_fields):
+        """Log DEBUG — detail informasi untuk debugging"""
+        extra = {'extra_fields': extra_fields} if extra_fields else {}
+        self.logger.debug(message, extra=extra)
+
     def info(self, message, **extra_fields):
-        """Log info dengan extra fields"""
+        """Log INFO — proses normal berjalan"""
         extra = {'extra_fields': extra_fields} if extra_fields else {}
         self.logger.info(message, extra=extra)
-    
-    def error(self, message, **extra_fields):
-        """Log error dengan extra fields"""
-        extra = {'extra_fields': extra_fields} if extra_fields else {}
-        self.logger.error(message, extra=extra)
-    
+
     def warning(self, message, **extra_fields):
-        """Log warning dengan extra fields"""
+        """Log WARNING — ada anomali tapi proses lanjut"""
         extra = {'extra_fields': extra_fields} if extra_fields else {}
         self.logger.warning(message, extra=extra)
+
+    def error(self, message, **extra_fields):
+        """Log ERROR — komponen gagal, pipeline lanjut"""
+        extra = {'extra_fields': extra_fields} if extra_fields else {}
+        self.logger.error(message, extra=extra)
+
+    def fatal(self, message, **extra_fields):
+        """Log FATAL — error kritis, pipeline harus berhenti"""
+        extra = {'extra_fields': extra_fields} if extra_fields else {}
+        # FATAL = CRITICAL di Python logging
+        self.logger.critical(message, extra=extra)
+
+    def log(self, severity: str, message: str, **extra_fields):
+        """
+        Log dengan severity sebagai string.
+        Mendukung: DEBUG, INFO, WARNING, ERROR, FATAL.
+
+        Args:
+            severity: String severity — 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'FATAL'
+            message: Pesan log
+            **extra_fields: Field tambahan yang akan disertakan dalam JSON log
+        """
+        severity = severity.upper()
+        dispatch = {
+            'DEBUG':   self.debug,
+            'INFO':    self.info,
+            'WARNING': self.warning,
+            'ERROR':   self.error,
+            'FATAL':   self.fatal,
+        }
+        log_func = dispatch.get(severity, self.info)
+        log_func(message, severity=severity, **extra_fields)
 
 
 # ==================== PROMETHEUS METRICS ====================

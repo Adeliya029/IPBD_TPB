@@ -52,15 +52,14 @@ def simpan_ke_postgres(data):
     """Simpan data cuaca real-time ke PostgreSQL"""
 
     query = """
-        INSERT INTO weather_realtime (
-            timestamp, province, city, latitude, longitude,
-            temperature, feels_like, humidity, precipitation,
-            weather_code, weather_condition, cloud_cover,
-            pressure_msl, surface_pressure,
-            wind_speed, wind_direction, wind_gusts,
-            data_time, source
+        INSERT INTO cuaca_realtime (
+            waktu, provinsi, kab_kota,
+            suhu, kelembapan, curah_hujan,
+            kecepatan_angin, tekanan_udara,
+            kondisi_cuaca, deskripsi_cuaca,
+            curah_hujan_mm, awan_persen, sumber
         ) VALUES (
-            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
         )
     """
 
@@ -72,21 +71,15 @@ def simpan_ke_postgres(data):
             data.get("waktu"),
             data.get("provinsi"),
             data.get("kab_kota"),
-            data.get("latitude"),
-            data.get("longitude"),
             data.get("suhu"),
-            data.get("suhu_feels_like"),
             data.get("kelembapan"),
-            data.get("curah_hujan_mm"),
-            data.get("kode_cuaca"),
-            data.get("kondisi_cuaca"),
-            data.get("awan_persen"),
-            data.get("tekanan_udara"),
-            data.get("tekanan_permukaan"),
+            data.get("curah_hujan_mm"),          # curah_hujan
             data.get("kecepatan_angin"),
-            data.get("arah_angin"),
-            data.get("kecepatan_angin_gust"),
-            data.get("waktu_data"),
+            data.get("tekanan_udara"),
+            data.get("kondisi_cuaca"),
+            data.get("kondisi_cuaca"),            # deskripsi_cuaca (fallback)
+            data.get("curah_hujan_mm"),
+            data.get("awan_persen"),
             data.get("sumber")
         ))
 

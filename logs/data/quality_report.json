@@ -1,0 +1,152 @@
+{
+  "timestamp": "2026-06-22T20:27:21.316913",
+  "overall_status": "PASS",
+  "checks": [
+    {
+      "source": "cuaca_openmeteo_minggu_01_20260101_20260107.csv",
+      "total_rows": 833,
+      "checks": [
+        {
+          "nama": "suhu_mean_valid",
+          "deskripsi": "suhu_mean tidak null, range -10 s/d 50°C",
+          "status": "PASS",
+          "null_count": 0,
+          "out_of_range_count": 0,
+          "total_checked": 833
+        },
+        {
+          "nama": "curah_hujan_valid",
+          "deskripsi": "curah_hujan_mm tidak null, >= 0",
+          "status": "PASS",
+          "null_count": 0,
+          "negative_count": 0,
+          "total_checked": 833
+        },
+        {
+          "nama": "kelembapan_valid",
+          "deskripsi": "kelembapan range 0-100%",
+          "status": "PASS",
+          "null_count": 0,
+          "out_of_range_count": 0,
+          "total_checked": 833
+        },
+        {
+          "nama": "no_duplicates_cuaca",
+          "deskripsi": "Tidak ada duplikat (tanggal, kab_kota)",
+          "status": "PASS",
+          "duplicate_count": 0,
+          "total_checked": 833
+        },
+        {
+          "nama": "kecepatan_angin_valid",
+          "deskripsi": "kecepatan_angin >= 0",
+          "status": "PASS",
+          "negative_count": 0,
+          "total_checked": 833
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "source": "cuaca_openmeteo_minggu_02_20260108_20260114.csv",
+      "total_rows": 784,
+      "checks": [
+        {
+          "nama": "suhu_mean_valid",
+          "deskripsi": "suhu_mean tidak null, range -10 s/d 50°C",
+          "status": "PASS",
+          "null_count": 0,
+          "out_of_range_count": 0,
+          "total_checked": 784
+        },
+        {
+          "nama": "curah_hujan_valid",
+          "deskripsi": "curah_hujan_mm tidak null, >= 0",
+          "status": "PASS",
+          "null_count": 0,
+          "negative_count": 0,
+          "total_checked": 784
+        },
+        {
+          "nama": "kelembapan_valid",
+          "deskripsi": "kelembapan range 0-100%",
+          "status": "PASS",
+          "null_count": 0,
+          "out_of_range_count": 0,
+          "total_checked": 784
+        },
+        {
+          "nama": "no_duplicates_cuaca",
+          "deskripsi": "Tidak ada duplikat (tanggal, kab_kota)",
+          "status": "PASS",
+          "duplicate_count": 0,
+          "total_checked": 784
+        },
+        {
+          "nama": "kecepatan_angin_valid",
+          "deskripsi": "kecepatan_angin >= 0",
+          "status": "PASS",
+          "negative_count": 0,
+          "total_checked": 784
+        }
+      ],
+      "status": "PASS"
+    },
+    {
+      "source": "harga_jawa_jan_mei_2026.csv",
+      "total_rows": 298327,
+      "checks": [
+        {
+          "nama": "harga_valid",
+          "deskripsi": "harga tidak null, > 0, < 1.000.000",
+          "status": "PASS",
+          "null_count": 0,
+          "zero_or_negative": 0,
+          "above_max": 0,
+          "total_checked": 298327
+        },
+        {
+          "nama": "komoditas_valid",
+          "deskripsi": "komoditas tidak null dan tidak kosong",
+          "status": "PASS",
+          "null_count": 0,
+          "empty_count": 0,
+          "komoditas_tidak_dikenal": 9,
+          "daftar_tidak_dikenal": [
+            "Bawang Putih Honan",
+            "Beras SPHP Bulog",
+            "Daging Sapi Paha Belakang",
+            "Gula Pasir Curah",
+            "Minyak Goreng Sawit Curah",
+            "Minyak Goreng Sawit Kemasan Premium",
+            "Minyakita",
+            "Tepung Terigu",
+            "Kedelai Impor"
+          ],
+          "total_checked": 298327
+        },
+        {
+          "nama": "no_duplicates_harga",
+          "deskripsi": "Tidak ada duplikat (tanggal, kab_kota, komoditas)",
+          "status": "PASS",
+          "duplicate_count": 0,
+          "total_checked": 298327
+        },
+        {
+          "nama": "tanggal_valid",
+          "deskripsi": "tanggal tidak null dan format valid",
+          "status": "PASS",
+          "invalid_count": 0,
+          "total_checked": 298327
+        }
+      ],
+      "status": "PASS"
+    }
+  ],
+  "summary": {
+    "total_checks": 14,
+    "passed": 14,
+    "failed": 0,
+    "pass_rate": "100.0%"
+  }
+}

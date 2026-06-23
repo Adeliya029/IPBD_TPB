@@ -4,6 +4,8 @@ Consumer untuk menerima data cuaca dan memprediksi perubahan harga pangan
 """
 
 import json
+import os
+import psycopg2
 from kafka import KafkaConsumer
 from models.price_prediction_model import FoodPricePredictionModel
 from security.security import AuthenticationManager, AuditLogger, DataProtection
@@ -11,6 +13,65 @@ from logs.monitoring import MetricsCollector, StructuredLogger, PerformanceMonit
 import sys
 import time
 from collections import deque
+from datetime import datetime
+
+# =========================
+# DATABASE CONFIG
+# =========================
+POSTGRES_HOST = os.getenv("POSTGRES_HOST", "localhost")
+POSTGRES_PORT = os.getenv("POSTGRES_PORT", "5440")
+POSTGRES_DB = os.getenv("POSTGRES_DB", "harga_pangan")
+POSTGRES_USER = os.getenv("POSTGRES_USER", "postgres")
+POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgres")
+
+def get_connection():
+    return psycopg2.connect(
+        host=POSTGRES_HOST,
+        port=POSTGRES_PORT,
+        database=POSTGRES_DB,
+        user=POSTGRES_USER,
+        password=POSTGRES_PASSWORD
+    )
+
+def simpan_prediksi_ke_postgres(data, weather_data, prediction):
+    query = """
+        INSERT INTO predictions (
+            tanggal_prediksi, provinsi, kab_kota,
+            prediction_label, probabilitas_naik, probabilitas_turun, probabilitas_stabil,
+            confidence, suhu_mean, curah_hujan_mm, kelembapan,
+            cluster_label
+        ) VALUES (
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+        )
+    """
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        
+        # Ambil tanggal dari data_time (jika string kosongi jamnya, atau default ke now)
+        tanggal_prediksi = datetime.now().date()
+        
+        cursor.execute(query, (
+            tanggal_prediksi,
+            data.get("provinsi", "Unknown"),
+            data.get("kab_kota", "Unknown"),
+            prediction.get("prediction"),
+            prediction.get("probabilities", {}).get("NAIK", 0),
+            prediction.get("probabilities", {}).get("TURUN", 0),
+            prediction.get("probabilities", {}).get("STABIL", 0),
+            prediction.get("confidence", 0),
+            weather_data.get("suhu_mean"),
+            weather_data.get("curah_hujan_mm"),
+            weather_data.get("kelembapan"),
+            prediction.get("cluster_id")
+        ))
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print(f"  ❌ DB Error saat menyimpan prediksi: {e}")
+
 
 # Setup logging dan monitoring
 logger = StructuredLogger('price_prediction_consumer')
@@ -74,8 +135,9 @@ except Exception as e:
     sys.exit(1)
 
 # Setup Kafka consumer
+TOPIC = os.getenv("TOPIC_CUACA", "cuaca-stream")
 consumer = KafkaConsumer(
-    'weather-stream',
+    TOPIC,
     bootstrap_servers='localhost:9092',
     value_deserializer=lambda x: json.loads(x.decode('utf-8')),
     auto_offset_reset='latest',
@@ -162,6 +224,9 @@ try:
                     message_id=message_count,
                     user=username
                 )
+                
+                # Simpan ke PostgreSQL agar muncul di Grafana
+                simpan_prediksi_ke_postgres(data, weather_data, prediction)
                 
                 # Audit log
                 audit.log_data_access(username, "weather_price_prediction", "read")

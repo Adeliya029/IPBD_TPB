@@ -177,8 +177,9 @@ class WeatherClusteringModel:
             "cluster_stats": self.cluster_stats,
         }
 
+        sil_str = f"{sil_score:.4f}" if sil_score is not None else "N/A"
         logger.info(
-            f"[INFO] Training selesai — Silhouette: {sil_score:.4f if sil_score else 'N/A'}, "
+            f"[INFO] Training selesai — Silhouette: {sil_str}, "
             f"Inertia: {self.model.inertia_:.2f}"
         )
 

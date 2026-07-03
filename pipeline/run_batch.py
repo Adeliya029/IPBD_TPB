@@ -21,6 +21,7 @@ import sys
 import uuid
 import time
 import subprocess
+from io import StringIO
 import pandas as pd
 from datetime import datetime
 
@@ -307,11 +308,10 @@ class BatchPipeline:
     # ============================================================
 
     def step_load_postgres(self):
-        """Load data CSV ke tabel PostgreSQL."""
+        """Load data CSV ke PostgreSQL via bulk COPY."""
         import psycopg
 
         conn = psycopg.connect(**self.db_config)
-        cur = conn.cursor()
 
         # Load cuaca historical
         cuaca_dir = os.path.join(PROJECT_ROOT, 'data', 'processed', 'cuaca')
@@ -319,7 +319,7 @@ class BatchPipeline:
             for f in os.listdir(cuaca_dir):
                 if f.endswith('.csv'):
                     df = pd.read_csv(os.path.join(cuaca_dir, f))
-                    self._insert_cuaca_historical(cur, df)
+                    self._bulk_insert_cuaca(conn, df)
                     logger.info(f"Loaded cuaca: {f} ({len(df)} baris)")
 
         # Load harga pangan
@@ -328,72 +328,47 @@ class BatchPipeline:
             for f in os.listdir(harga_dir):
                 if f.endswith('.csv'):
                     df = pd.read_csv(os.path.join(harga_dir, f))
-                    self._insert_harga_pangan(cur, df)
+                    self._bulk_insert_harga(conn, df)
                     logger.info(f"Loaded harga: {f} ({len(df)} baris)")
 
-        conn.commit()
-        cur.close()
         conn.close()
-
         logger.info("Load ke PostgreSQL selesai")
 
-    def _insert_cuaca_historical(self, cur, df):
-        """Insert data cuaca historical ke PostgreSQL."""
+    def _bulk_insert_cuaca(self, conn, df):
         required = ['tanggal', 'kab_kota']
         if not all(c in df.columns for c in required):
             logger.warning(f"Kolom kurang: {df.columns.tolist()}")
             return
 
-        for _, row in df.iterrows():
-            try:
-                cur.execute("""
-                    INSERT INTO cuaca_historical
-                        (tanggal, provinsi, kab_kota, latitude, longitude,
-                         suhu_mean, suhu_max, suhu_min, curah_hujan_mm,
-                         kelembapan, kecepatan_angin, tekanan_udara, awan_persen)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT DO NOTHING
-                """, (
-                    row.get('tanggal'),
-                    row.get('provinsi'),
-                    row.get('kab_kota'),
-                    row.get('latitude'),
-                    row.get('longitude'),
-                    row.get('suhu_mean'),
-                    row.get('suhu_max'),
-                    row.get('suhu_min'),
-                    row.get('curah_hujan_mm'),
-                    row.get('kelembapan'),
-                    row.get('kecepatan_angin'),
-                    row.get('tekanan_udara'),
-                    row.get('awan_persen'),
-                ))
-            except Exception:
-                pass  # Skip baris bermasalah
+        cols = ['tanggal', 'provinsi', 'kab_kota', 'latitude', 'longitude',
+                'suhu_mean', 'suhu_max', 'suhu_min', 'curah_hujan_mm',
+                'kelembapan', 'kecepatan_angin', 'tekanan_udara', 'awan_persen']
+        buf = StringIO()
+        df[cols].to_csv(buf, index=False, header=False, na_rep='\\N')
+        buf.seek(0)
+        with conn.cursor() as cur:
+            with cur.copy("COPY cuaca_historical (tanggal, provinsi, kab_kota, latitude, longitude, suhu_mean, suhu_max, suhu_min, curah_hujan_mm, kelembapan, kecepatan_angin, tekanan_udara, awan_persen) FROM STDIN WITH (FORMAT CSV, NULL '\\N')") as copy:
+                for line in buf:
+                    copy.write(line)
+        conn.commit()
+        logger.info(f"Bulk insert cuaca: {len(df)} baris")
 
-    def _insert_harga_pangan(self, cur, df):
-        """Insert data harga pangan ke PostgreSQL."""
-        # Mapping kolom dari CSV processed ke DB
-        # CSV: tanggal, provinsi_id, kode_kab_kota, kab_kota, komoditas, satuan, harga
-        for _, row in df.iterrows():
-            try:
-                cur.execute("""
-                    INSERT INTO harga_pangan_raw
-                        (tanggal, provinsi, kab_kota, komoditas, harga,
-                         satuan, pipeline_run_id)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    ON CONFLICT DO NOTHING
-                """, (
-                    row.get('tanggal'),
-                    str(row.get('provinsi_id', '')),
-                    row.get('kab_kota'),
-                    row.get('komoditas'),
-                    row.get('harga'),
-                    row.get('satuan', 'kg'),
-                    self.pipeline_run_id,
-                ))
-            except Exception:
-                pass
+    def _bulk_insert_harga(self, conn, df):
+        out = df[['tanggal', 'provinsi_id', 'kab_kota', 'komoditas', 'harga', 'satuan']].copy()
+        out['provinsi_id'] = out['provinsi_id'].astype(str)
+        out.rename(columns={'provinsi_id': 'provinsi'}, inplace=True)
+        out['pipeline_run_id'] = self.pipeline_run_id
+
+        cols = ['tanggal', 'provinsi', 'kab_kota', 'komoditas', 'harga', 'satuan', 'pipeline_run_id']
+        buf = StringIO()
+        out[cols].to_csv(buf, index=False, header=False, na_rep='\\N')
+        buf.seek(0)
+        with conn.cursor() as cur:
+            with cur.copy("COPY harga_pangan_raw (tanggal, provinsi, kab_kota, komoditas, harga, satuan, pipeline_run_id) FROM STDIN WITH (FORMAT CSV, NULL '\\N')") as copy:
+                for line in buf:
+                    copy.write(line)
+        conn.commit()
+        logger.info(f"Bulk insert harga: {len(df)} baris")
 
     # ============================================================
     # STEP 7: Merge cuaca + harga

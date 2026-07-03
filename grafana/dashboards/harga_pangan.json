@@ -4,7 +4,7 @@
     { "type": "datasource", "id": "postgres", "name": "PostgreSQL", "version": "1.0.0" }
   ],
   "annotations": { "list": [] },
-  "description": "Dashboard analitik harga pangan — tren harga, prediksi ML, clustering, dan distribusi komoditas",
+  "description": "Dashboard analitik harga pangan — KPI, tren, heatmap, cuaca, ML, dan risiko",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -14,13 +14,81 @@
     {
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
-      "id": 200,
-      "title": "📈 Overview Harga Pangan",
+      "id": 100,
+      "title": "📊 Ringkasan",
       "type": "row"
     },
     {
       "datasource": "PostgreSQL",
-      "description": "Rata-rata harga per komoditas (semua provinsi)",
+      "description": "Rata-rata harga nasional semua komoditas",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "blue" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "blue", "value": null }]
+          },
+          "unit": "currencyIDR",
+          "decimals": 0
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "id": 101,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["mean"] },
+        "textMode": "auto"
+      },
+      "targets": [{
+        "datasource": "PostgreSQL",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT ROUND(AVG(harga)) as value FROM harga_pangan_raw WHERE harga > 0",
+        "refId": "A"
+      }],
+      "title": "Rata-rata Harga Nasional",
+      "type": "stat"
+    },
+    {
+      "datasource": "PostgreSQL",
+      "description": "Jumlah komoditas yang dipantau",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "fixed", "fixedColor": "green" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          },
+          "unit": "none",
+          "decimals": 0
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
+      "id": 102,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["mean"] },
+        "textMode": "auto"
+      },
+      "targets": [{
+        "datasource": "PostgreSQL",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT COUNT(DISTINCT komoditas) as value FROM harga_pangan_raw",
+        "refId": "A"
+      }],
+      "title": "Komoditas Dipantau",
+      "type": "stat"
+    },
+    {
+      "datasource": "PostgreSQL",
+      "description": "Jumlah alert aktif tingkat CRITICAL",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -28,164 +96,511 @@
             "mode": "absolute",
             "steps": [
               { "color": "green", "value": null },
-              { "color": "yellow", "value": 20000 },
-              { "color": "red", "value": 50000 }
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 5 }
             ]
+          },
+          "unit": "none",
+          "decimals": 0
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 },
+      "id": 103,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["mean"] },
+        "textMode": "auto"
+      },
+      "targets": [{
+        "datasource": "PostgreSQL",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT COUNT(*) as value FROM alerts WHERE severity = 'CRITICAL'",
+        "refId": "A"
+      }],
+      "title": "Alert Aktif",
+      "type": "stat"
+    },
+    {
+      "datasource": "PostgreSQL",
+      "description": "Jumlah komoditas diprediksi NAIK",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 3 },
+              { "color": "red", "value": 10 }
+            ]
+          },
+          "unit": "none",
+          "decimals": 0
+        }
+      },
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "id": 104,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["mean"] },
+        "textMode": "auto"
+      },
+      "targets": [{
+        "datasource": "PostgreSQL",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT COUNT(*) as value FROM predictions WHERE prediksi_label = 'STABIL'",
+        "refId": "A"
+      }],
+      "title": "Prediksi Stabil",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "id": 200,
+      "title": "💰 Analisis Harga",
+      "type": "row"
+    },
+    {
+      "datasource": "PostgreSQL",
+      "description": "Top 10 komoditas termahal",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "continuous-GrYlRd" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
           },
           "unit": "currencyIDR",
           "decimals": 0
         }
       },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 1 },
+      "gridPos": { "h": 10, "w": 8, "x": 0, "y": 6 },
       "id": 201,
       "options": {
-        "displayMode": "gradient",
+        "displayMode": "list",
         "orientation": "horizontal",
         "reduceOptions": { "calcs": ["mean"] },
         "showUnfilled": true,
         "text": {}
       },
-      "targets": [
-        {
-          "datasource": "PostgreSQL",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT komoditas, ROUND(AVG(harga)) as value FROM harga_pangan_raw WHERE harga > 0 GROUP BY komoditas ORDER BY value DESC LIMIT 15",
-          "refId": "A"
-        }
-      ],
-      "title": "💰 Rata-rata Harga per Komoditas (IDR)",
+      "targets": [{
+        "datasource": "PostgreSQL",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT komoditas, ROUND(AVG(harga)) as value FROM harga_pangan_raw WHERE harga > 0 GROUP BY komoditas ORDER BY value DESC LIMIT 10",
+        "refId": "A"
+      }],
+      "title": "Top 10 Komoditas Termahal",
       "type": "bargauge"
     },
     {
       "datasource": "PostgreSQL",
-      "description": "Distribusi prediksi model ML: NAIK, TURUN, STABIL",
+      "description": "Tren harga per komoditas (pilih dari dropdown)",
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" }
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineInterpolation": "smooth", "lineWidth": 2, "fillOpacity": 15, "showPoints": "never" },
+          "unit": "currencyIDR"
         }
       },
-      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 1 },
+      "gridPos": { "h": 10, "w": 16, "x": 8, "y": 6 },
       "id": 202,
       "options": {
-        "displayLabels": ["percent", "name"],
-        "legend": { "displayMode": "table", "placement": "bottom", "values": ["value", "percent"] },
-        "pieType": "donut",
-        "tooltip": { "mode": "single" }
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
       },
-      "targets": [
-        {
-          "datasource": "PostgreSQL",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT prediction_label as komoditas, COUNT(*) as value FROM predictions GROUP BY prediction_label ORDER BY value DESC",
-          "refId": "A"
-        }
-      ],
-      "title": "🤖 Distribusi Prediksi ML",
-      "type": "piechart"
+      "targets": [{
+        "datasource": "PostgreSQL",
+        "format": "time_series",
+        "rawQuery": true,
+        "rawSql": "SELECT tanggal AS time, ROUND(AVG(harga)) AS value, komoditas AS metric FROM harga_pangan_raw WHERE komoditas IN ('Beras Medium', 'Beras Premium', 'Cabai Merah Besar', 'Cabai Rawit Merah', 'Daging Sapi Paha Belakang', 'Minyak Goreng Sawit Curah') AND harga > 0 GROUP BY tanggal, komoditas ORDER BY tanggal",
+        "refId": "A"
+      }],
+      "title": "Tren Harga — Komoditas Utama",
+      "type": "timeseries"
     },
     {
       "datasource": "PostgreSQL",
-      "description": "Distribusi cluster cuaca (K-Means)",
+      "description": "Heatmap perubahan harga per komoditas per bulan (hijau=turun, merah=naik)",
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" }
-        }
+          "color": { "mode": "thresholds" },
+          "custom": { "align": "auto", "displayMode": "auto" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": -1 },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 3 }
+            ]
+          },
+          "unit": "percent",
+          "decimals": 1
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "komoditas" },
+            "properties": [{ "id": "custom.displayMode", "value": "auto" }]
+          }
+        ]
       },
-      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 1 },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 16 },
       "id": 203,
       "options": {
-        "displayLabels": ["percent", "name"],
-        "legend": { "displayMode": "table", "placement": "bottom", "values": ["value", "percent"] },
-        "pieType": "pie",
-        "tooltip": { "mode": "single" }
+        "showHeader": true,
+        "sortBy": [{ "desc": false, "displayName": "komoditas" }]
       },
-      "targets": [
-        {
-          "datasource": "PostgreSQL",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT CONCAT('Cluster ', cluster_label::text) as komoditas, COUNT(*) as value FROM predictions WHERE cluster_label IS NOT NULL GROUP BY cluster_label ORDER BY cluster_label",
-          "refId": "A"
-        }
-      ],
-      "title": "🔵 Distribusi Cluster (K-Means)",
-      "type": "piechart"
-    },
-    {
-      "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
-      "id": 210,
-      "title": "📊 Tren Harga per Komoditas",
-      "type": "row"
+      "targets": [{
+        "datasource": "PostgreSQL",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT komoditas, ROUND(AVG(CASE WHEN EXTRACT(MONTH FROM tanggal)=1 THEN harga_change_pct END)::numeric, 1) AS Jan, ROUND(AVG(CASE WHEN EXTRACT(MONTH FROM tanggal)=2 THEN harga_change_pct END)::numeric, 1) AS Feb, ROUND(AVG(CASE WHEN EXTRACT(MONTH FROM tanggal)=3 THEN harga_change_pct END)::numeric, 1) AS Mar, ROUND(AVG(CASE WHEN EXTRACT(MONTH FROM tanggal)=4 THEN harga_change_pct END)::numeric, 1) AS Apr, ROUND(AVG(CASE WHEN EXTRACT(MONTH FROM tanggal)=5 THEN harga_change_pct END)::numeric, 1) AS May FROM cuaca_harga_merged WHERE harga_change_pct IS NOT NULL GROUP BY komoditas ORDER BY komoditas",
+        "refId": "A"
+      }],
+      "title": "📊 Heatmap Perubahan Harga per Bulan (%)",
+      "type": "table"
     },
     {
       "datasource": "PostgreSQL",
-      "description": "Tren harga Beras Medium dan Beras Premium dari waktu ke waktu",
+      "description": "Volatilitas harga per komoditas (STDDEV)",
       "fieldConfig": {
         "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "lineWidth": 2, "fillOpacity": 10 },
-          "unit": "currencyIDR"
+          "color": { "mode": "continuous-GrYlRd" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          },
+          "unit": "currencyIDR",
+          "decimals": 0
         }
       },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 10 },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 16 },
       "id": 204,
       "options": {
-        "legend": { "displayMode": "list", "placement": "bottom" },
-        "tooltip": { "mode": "multi" }
+        "displayMode": "list",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["mean"] },
+        "showUnfilled": true
       },
-      "targets": [
-        {
-          "datasource": "PostgreSQL",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT tanggal AS time, AVG(harga) AS value, CONCAT(komoditas, ' - ', provinsi) AS metric FROM harga_pangan_raw WHERE komoditas IN ('Beras Medium', 'Beras Premium') AND harga > 0 GROUP BY tanggal, komoditas, provinsi ORDER BY tanggal",
-          "refId": "A"
-        }
-      ],
-      "title": "🍚 Tren Harga Beras",
-      "type": "timeseries"
-    },
-    {
-      "datasource": "PostgreSQL",
-      "description": "Tren harga Cabai dari waktu ke waktu",
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "palette-classic" },
-          "custom": { "lineWidth": 2, "fillOpacity": 10 },
-          "unit": "currencyIDR"
-        }
-      },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 10 },
-      "id": 205,
-      "options": {
-        "legend": { "displayMode": "list", "placement": "bottom" },
-        "tooltip": { "mode": "multi" }
-      },
-      "targets": [
-        {
-          "datasource": "PostgreSQL",
-          "format": "time_series",
-          "rawQuery": true,
-          "rawSql": "SELECT tanggal AS time, AVG(harga) AS value, komoditas AS metric FROM harga_pangan_raw WHERE komoditas LIKE '%Cabai%' AND harga > 0 GROUP BY tanggal, komoditas ORDER BY tanggal",
-          "refId": "A"
-        }
-      ],
-      "title": "🌶️ Tren Harga Cabai",
-      "type": "timeseries"
+      "targets": [{
+        "datasource": "PostgreSQL",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT komoditas, ROUND(STDDEV(harga)) as value FROM harga_pangan_raw WHERE harga > 0 GROUP BY komoditas ORDER BY value DESC",
+        "refId": "A"
+      }],
+      "title": "📉 Volatilitas Harga (Standar Deviasi)",
+      "type": "bargauge"
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
-      "id": 220,
-      "title": "🌦️ Cuaca & Korelasi Harga",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 26 },
+      "id": 300,
+      "title": "🗺️ Analisis Wilayah",
       "type": "row"
     },
     {
       "datasource": "PostgreSQL",
-      "description": "Data cuaca realtime terkini per kab/kota",
+      "description": "Ranking provinsi berdasarkan rata-rata harga",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": { "align": "auto", "displayMode": "auto" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "avg_harga" },
+            "properties": [
+              { "id": "unit", "value": "currencyIDR" },
+              { "id": "custom.displayMode", "value": "color-background" },
+              { "id": "color", "value": { "mode": "continuous-GrYlRd" } }
+            ]
+          },
+          {
+            "matcher": { "id": "byName", "options": "avg_change" },
+            "properties": [
+              { "id": "unit", "value": "percent" },
+              { "id": "custom.displayMode", "value": "color-background" },
+              { "id": "color", "value": { "mode": "continuous-GrYlRd" } }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 27 },
+      "id": 301,
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "avg_harga" }]
+      },
+      "targets": [{
+        "datasource": "PostgreSQL",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT CASE p.provinsi WHEN '31' THEN 'DKI Jakarta' WHEN '32' THEN 'Jawa Barat' WHEN '33' THEN 'Jawa Tengah' WHEN '34' THEN 'DI Yogyakarta' WHEN '35' THEN 'Jawa Timur' WHEN '36' THEN 'Banten' END AS provinsi, ROUND(AVG(p.harga)) AS avg_harga, COUNT(DISTINCT p.komoditas) AS komoditas, COUNT(DISTINCT p.kab_kota) AS kab_kota, ROUND(AVG(m.harga_change_pct)::numeric, 1) AS avg_change FROM harga_pangan_raw p LEFT JOIN cuaca_harga_merged m ON p.tanggal = m.tanggal AND p.kab_kota = m.kab_kota AND p.komoditas = m.komoditas WHERE p.harga > 0 GROUP BY p.provinsi ORDER BY avg_harga DESC",
+        "refId": "A"
+      }],
+      "title": "🏆 Ranking Provinsi",
+      "type": "table"
+    },
+    {
+      "datasource": "PostgreSQL",
+      "description": "Detail harga per kabupaten/kota",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "custom": { "align": "auto", "displayMode": "auto" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": { "id": "byName", "options": "harga" },
+            "properties": [
+              { "id": "unit", "value": "currencyIDR" },
+              { "id": "custom.displayMode", "value": "color-background" },
+              { "id": "color", "value": { "mode": "continuous-GrYlRd" } }
+            ]
+          }
+        ]
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 27 },
+      "id": 302,
+      "options": {
+        "showHeader": true,
+        "sortBy": [{ "desc": true, "displayName": "harga" }]
+      },
+      "targets": [{
+        "datasource": "PostgreSQL",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT p.kab_kota, CASE p.provinsi WHEN '31' THEN 'DKI Jakarta' WHEN '32' THEN 'Jawa Barat' WHEN '33' THEN 'Jawa Tengah' WHEN '34' THEN 'DI Yogyakarta' WHEN '35' THEN 'Jawa Timur' WHEN '36' THEN 'Banten' END AS prov, p.komoditas, ROUND(AVG(p.harga)) AS harga, COUNT(*) AS hari FROM harga_pangan_raw p WHERE p.harga > 0 GROUP BY p.kab_kota, p.provinsi, p.komoditas HAVING COUNT(*) > 5 ORDER BY harga DESC LIMIT 50",
+        "refId": "A"
+      }],
+      "title": "📍 Detail Harga per Kab/Kota (Top 50)",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 37 },
+      "id": 400,
+      "title": "🌤️ Analisis Cuaca & Korelasi Harga",
+      "type": "row"
+    },
+    {
+      "datasource": "PostgreSQL",
+      "description": "Scatter plot curah hujan vs harga — cari pola korelasi",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisGridShow": true,
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "axisWidth": 0,
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "pointSize": { "fixed": 3, "max": 50, "min": 2 },
+            "scaleDistribution": { "type": "linear" }
+          }
+        }
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 38 },
+      "id": 401,
+      "options": {
+        "dims": {
+          "frame": { "name": "komoditas" },
+          "x": { "field": "x" },
+          "y": { "field": "y" }
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "targets": [{
+        "datasource": "PostgreSQL",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT m.curah_hujan_mm AS x, m.harga AS y, m.komoditas FROM cuaca_harga_merged m WHERE m.curah_hujan_mm > 0 AND m.harga > 0 ORDER BY RANDOM() LIMIT 3000",
+        "refId": "A"
+      }],
+      "title": "🌧️ Scatter: Curah Hujan vs Harga",
+      "type": "xychart"
+    },
+    {
+      "datasource": "PostgreSQL",
+      "description": "Scatter plot suhu rata-rata vs harga",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisGridShow": true,
+            "axisPlacement": "auto",
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false },
+            "pointSize": { "fixed": 3, "max": 50, "min": 2 },
+            "scaleDistribution": { "type": "linear" }
+          }
+        }
+      },
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 38 },
+      "id": 402,
+      "options": {
+        "dims": {
+          "frame": { "name": "komoditas" },
+          "x": { "field": "x" },
+          "y": { "field": "y" }
+        },
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "targets": [{
+        "datasource": "PostgreSQL",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT m.suhu_mean AS x, m.harga AS y, m.komoditas FROM cuaca_harga_merged m WHERE m.harga > 0 ORDER BY RANDOM() LIMIT 3000",
+        "refId": "A"
+      }],
+      "title": "🌡️ Scatter: Suhu vs Harga",
+      "type": "xychart"
+    },
+    {
+      "datasource": "PostgreSQL",
+      "description": "Korelasi Pearson antara suhu dan harga",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.3 },
+              { "color": "red", "value": 0.7 }
+            ]
+          },
+          "decimals": 4,
+          "unit": "none"
+        }
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 48 },
+      "id": 403,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["mean"] },
+        "textMode": "auto"
+      },
+      "targets": [{
+        "datasource": "PostgreSQL",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT ROUND(CORR(suhu_mean, harga)::numeric, 4) as value FROM cuaca_harga_merged WHERE suhu_mean IS NOT NULL AND harga > 0",
+        "refId": "A"
+      }],
+      "title": "Korelasi Suhu vs Harga",
+      "type": "stat"
+    },
+    {
+      "datasource": "PostgreSQL",
+      "description": "Korelasi Pearson antara curah hujan dan harga",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.3 },
+              { "color": "red", "value": 0.7 }
+            ]
+          },
+          "decimals": 4,
+          "unit": "none"
+        }
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 48 },
+      "id": 404,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["mean"] },
+        "textMode": "auto"
+      },
+      "targets": [{
+        "datasource": "PostgreSQL",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT ROUND(CORR(curah_hujan_mm, harga)::numeric, 4) as value FROM cuaca_harga_merged WHERE curah_hujan_mm IS NOT NULL AND harga > 0",
+        "refId": "A"
+      }],
+      "title": "Korelasi Hujan vs Harga",
+      "type": "stat"
+    },
+    {
+      "datasource": "PostgreSQL",
+      "description": "Korelasi Pearson antara kelembapan dan harga",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.3 },
+              { "color": "red", "value": 0.7 }
+            ]
+          },
+          "decimals": 4,
+          "unit": "none"
+        }
+      },
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 48 },
+      "id": 405,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["mean"] },
+        "textMode": "auto"
+      },
+      "targets": [{
+        "datasource": "PostgreSQL",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT ROUND(CORR(kelembapan, harga)::numeric, 4) as value FROM cuaca_harga_merged WHERE kelembapan IS NOT NULL AND harga > 0",
+        "refId": "A"
+      }],
+      "title": "Korelasi Kelembapan vs Harga",
+      "type": "stat"
+    },
+    {
+      "datasource": "PostgreSQL",
+      "description": "Data cuaca realtime terkini",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
@@ -200,124 +615,195 @@
             "matcher": { "id": "byName", "options": "suhu_mean" },
             "properties": [
               { "id": "custom.displayMode", "value": "color-background" },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    { "color": "blue", "value": null },
-                    { "color": "green", "value": 25 },
-                    { "color": "orange", "value": 33 },
-                    { "color": "red", "value": 38 }
-                  ]
-                }
-              }
+              { "id": "thresholds", "value": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }, { "color": "green", "value": 25 }, { "color": "orange", "value": 33 }, { "color": "red", "value": 38 }] } }
             ]
           }
         ]
       },
-      "gridPos": { "h": 8, "w": 14, "x": 0, "y": 19 },
-      "id": 206,
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 52 },
+      "id": 406,
       "options": {
         "showHeader": true,
         "sortBy": [{ "desc": true, "displayName": "waktu" }]
       },
-      "targets": [
-        {
-          "datasource": "PostgreSQL",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT kab_kota, provinsi, ROUND(suhu_mean::numeric, 1) as suhu_mean, ROUND(curah_hujan_mm::numeric, 1) as curah_hujan_mm, ROUND(kelembapan::numeric, 1) as kelembapan, waktu FROM cuaca_realtime ORDER BY waktu DESC LIMIT 30",
-          "refId": "A"
-        }
-      ],
-      "title": "🌤️ Cuaca Realtime (Terkini)",
-      "type": "table"
-    },
-    {
-      "datasource": "PostgreSQL",
-      "description": "5 komoditas dengan harga spike terbesar berdasarkan alert",
-      "fieldConfig": {
-        "defaults": {
-          "color": { "mode": "thresholds" },
-          "custom": { "align": "auto", "displayMode": "auto" },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
-          }
-        }
-      },
-      "gridPos": { "h": 8, "w": 10, "x": 14, "y": 19 },
-      "id": 207,
-      "options": {
-        "showHeader": true,
-        "sortBy": [{ "desc": true, "displayName": "nilai_aktual" }]
-      },
-      "targets": [
-        {
-          "datasource": "PostgreSQL",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT komoditas, provinsi, ROUND(nilai_aktual::numeric, 2) as kenaikan_pct, severity, created_at FROM alerts WHERE alert_type = 'HARGA_SPIKE' ORDER BY nilai_aktual DESC LIMIT 20",
-          "refId": "A"
-        }
-      ],
-      "title": "🚨 Riwayat Harga Spike",
+      "targets": [{
+        "datasource": "PostgreSQL",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT kab_kota, CASE provinsi WHEN '31' THEN 'DKI' WHEN '32' THEN 'Jabar' WHEN '33' THEN 'Jateng' WHEN '34' THEN 'DIY' WHEN '35' THEN 'Jatim' WHEN '36' THEN 'Banten' END AS prov, ROUND(suhu_mean::numeric,1) as suhu_mean, ROUND(curah_hujan_mm::numeric,1) as hujan_mm, ROUND(kelembapan::numeric,0) as lembab, ROUND(kecepatan_angin::numeric,1) as angin, cluster_nama, waktu FROM cuaca_realtime ORDER BY waktu DESC LIMIT 30",
+        "refId": "A"
+      }],
+      "title": "🌤️ Cuaca Realtime Terkini",
       "type": "table"
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
-      "id": 230,
-      "title": "🤖 ML Predictions Detail",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 60 },
+      "id": 500,
+      "title": "🤖 Machine Learning & Risiko",
       "type": "row"
     },
     {
       "datasource": "PostgreSQL",
-      "description": "Detail prediksi harga terbaru dari model ML",
+      "description": "Distribusi prediksi ML (NAIK/TURUN/STABIL)",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false }
+          }
+        }
+      },
+      "gridPos": { "h": 10, "w": 8, "x": 0, "y": 61 },
+      "id": 501,
+      "options": {
+        "displayLabels": ["percent", "name"],
+        "legend": { "displayMode": "table", "placement": "bottom", "values": ["value", "percent"] },
+        "pieType": "donut",
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [{
+        "datasource": "PostgreSQL",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT prediction_label as metric, COUNT(*)::int as value FROM predictions GROUP BY prediction_label ORDER BY value DESC",
+        "refId": "A"
+      }],
+      "title": "🤖 Distribusi Prediksi ML",
+      "type": "piechart"
+    },
+    {
+      "datasource": "PostgreSQL",
+      "description": "Distribusi cluster cuaca (K-Means)",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "hideFrom": { "legend": false, "tooltip": false, "viz": false }
+          }
+        }
+      },
+      "gridPos": { "h": 10, "w": 8, "x": 8, "y": 61 },
+      "id": 502,
+      "options": {
+        "displayLabels": ["percent", "name"],
+        "legend": { "displayMode": "table", "placement": "bottom", "values": ["value", "percent"] },
+        "pieType": "pie",
+        "tooltip": { "mode": "single" }
+      },
+      "targets": [{
+        "datasource": "PostgreSQL",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT CONCAT('Cluster ', cluster_label::text) as metric, COUNT(*)::int as value FROM predictions WHERE cluster_label IS NOT NULL GROUP BY cluster_label ORDER BY cluster_label",
+        "refId": "A"
+      }],
+      "title": "🔵 Distribusi Cluster (K-Means)",
+      "type": "piechart"
+    },
+    {
+      "datasource": "PostgreSQL",
+      "description": "Risk level berdasarkan jumlah alert CRITICAL",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 1 },
+              { "color": "red", "value": 3 }
+            ]
+          },
+          "unit": "none",
+          "decimals": 0,
+          "min": 0,
+          "max": 10
+        }
+      },
+      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 61 },
+      "id": 503,
+      "options": {
+        "orientation": "vertical",
+        "reduceOptions": { "calcs": ["mean"] },
+        "showThresholdLabels": false,
+        "showThresholdMarkers": true
+      },
+      "targets": [{
+        "datasource": "PostgreSQL",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT COUNT(*) as value FROM alerts WHERE severity = 'CRITICAL'",
+        "refId": "A"
+      }],
+      "title": "🚨 Gauge Risiko Alert",
+      "type": "gauge"
+    },
+    {
+      "datasource": "PostgreSQL",
+      "description": "Provinsi dengan kenaikan harga tertinggi",
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
           "custom": { "align": "auto", "displayMode": "auto" },
           "thresholds": {
             "mode": "absolute",
-            "steps": [{ "color": "green", "value": null }]
-          }
-        },
-        "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "prediction_label" },
-            "properties": [
-              { "id": "custom.displayMode", "value": "color-background" },
-              {
-                "id": "mappings",
-                "value": [
-                  { "options": { "NAIK": { "color": "red", "index": 0, "text": "🔺 NAIK" } }, "type": "value" },
-                  { "options": { "TURUN": { "color": "green", "index": 1, "text": "🔻 TURUN" } }, "type": "value" },
-                  { "options": { "STABIL": { "color": "blue", "index": 2, "text": "➡️ STABIL" } }, "type": "value" }
-                ]
-              }
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "orange", "value": 0 },
+              { "color": "red", "value": 2 }
             ]
-          }
-        ]
+          },
+          "unit": "percent",
+          "decimals": 1
+        }
       },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 28 },
-      "id": 208,
+      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 66 },
+      "id": 504,
       "options": {
         "showHeader": true,
-        "sortBy": [{ "desc": true, "displayName": "created_at" }]
+        "sortBy": [{ "desc": true, "displayName": "avg_change" }]
       },
-      "targets": [
-        {
-          "datasource": "PostgreSQL",
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT kab_kota, komoditas, prediction_label, ROUND(confidence::numeric * 100, 1) as confidence_pct, ROUND(suhu_mean::numeric, 1) as suhu, ROUND(curah_hujan_mm::numeric, 1) as hujan_mm, cluster_label, created_at FROM predictions ORDER BY created_at DESC LIMIT 50",
-          "refId": "A"
-        }
-      ],
-      "title": "🔮 Prediksi ML Terkini (NAIK/TURUN/STABIL + Cluster)",
+      "targets": [{
+        "datasource": "PostgreSQL",
+        "format": "table",
+        "rawQuery": true,
+        "rawSql": "SELECT CASE provinsi WHEN '31' THEN 'DKI Jakarta' WHEN '32' THEN 'Jawa Barat' WHEN '33' THEN 'Jawa Tengah' WHEN '34' THEN 'DI Yogyakarta' WHEN '35' THEN 'Jawa Timur' WHEN '36' THEN 'Banten' END AS provinsi, ROUND(AVG(harga_change_pct)::numeric, 1) AS avg_change FROM cuaca_harga_merged WHERE harga_change_pct IS NOT NULL GROUP BY provinsi ORDER BY avg_change DESC",
+        "refId": "A"
+      }],
+      "title": "📈 Ranking Kenaikan Harga per Provinsi",
       "type": "table"
+    },
+    {
+      "datasource": "PostgreSQL",
+      "description": "Distribusi prediksi per hari — stacked bar",
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0,
+            "stacking": { "group": "A", "mode": "normal" }
+          }
+        }
+      },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 71 },
+      "id": 505,
+      "options": {
+        "legend": { "displayMode": "list", "placement": "bottom" },
+        "tooltip": { "mode": "multi" },
+        "barWidth": 0.8,
+        "groupWidth": 0.7
+      },
+      "targets": [{
+        "datasource": "PostgreSQL",
+        "format": "time_series",
+        "rawQuery": true,
+        "rawSql": "SELECT tanggal_prediksi AS time, COUNT(*) AS value, prediksi_label AS metric FROM predictions GROUP BY tanggal_prediksi, prediksi_label ORDER BY time",
+        "refId": "A"
+      }],
+      "title": "📅 Prediksi per Hari (Stacked Bar)",
+      "type": "barchart"
     }
   ],
   "refresh": "1m",
@@ -330,5 +816,5 @@
   "timezone": "browser",
   "title": "🌾 Analitik Harga Pangan — IPBD",
   "uid": "ipbd-harga-pangan",
-  "version": 1
+  "version": 2
 }

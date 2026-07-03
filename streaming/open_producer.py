@@ -2,6 +2,7 @@ import os
 import json
 import time
 import requests
+import threading
 
 from datetime import datetime
 from kafka import KafkaProducer
@@ -9,31 +10,47 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Tambahkan project root ke path agar bisa import logs.*
+import sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+
 # =========================
 # KONFIGURASI
 # =========================
 
 TOPIC = os.getenv("TOPIC_CUACA", "cuaca-stream")
 BOOTSTRAP = os.getenv("KAFKA_BOOTSTRAP", "localhost:9092")
-INTERVAL_STREAM = int(os.getenv("INTERVAL_STREAM", "3600"))  # default 1 jam
+INTERVAL_STREAM = int(os.getenv("INTERVAL_STREAM", "3600"))
 
-# Path ke kab_kota_jawa.json (di folder streaming)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.join(BASE_DIR, "..")
 FILE_KOTA = os.path.join(PROJECT_ROOT, "streaming", "kab_kota_jawa.json")
 
-print(f"BASE_DIR: {BASE_DIR}")
-print(f"PROJECT_ROOT: {PROJECT_ROOT}")
-print(f"FILE_KOTA: {FILE_KOTA}")
-print(f"File exists: {os.path.exists(FILE_KOTA)}")
-
 with open(FILE_KOTA, "r", encoding="utf-8") as f:
     DAFTAR_KOTA = json.load(f)
 
-print(f"Loaded {len(DAFTAR_KOTA)} kota")
-
-# Open-Meteo API (GRATIS, no API key)
 FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
+
+# =========================
+# PROMETHEUS METRICS
+# =========================
+
+from logs.monitoring import MetricsCollector, StructuredLogger, start_metrics_server
+
+metrics = MetricsCollector()
+logger = StructuredLogger('OpenProducer')
+
+start_metrics_server(8001)
+
+def update_system_metrics_periodically():
+    while True:
+        try:
+            metrics.update_system_metrics()
+        except Exception:
+            pass
+        time.sleep(15)
+
+threading.Thread(target=update_system_metrics_periodically, daemon=True).start()
 
 # =========================
 # KAFKA PRODUCER
@@ -49,11 +66,6 @@ producer = KafkaProducer(
 # =========================
 
 def ambil_cuaca_realtime(kota):
-    """
-    Ambil data cuaca real-time dari Open-Meteo untuk 1 kota.
-    Menggunakan /v1/forecast dengan current weather.
-    """
-
     params = {
         "latitude": kota["latitude"],
         "longitude": kota["longitude"],
@@ -71,7 +83,6 @@ def ambil_cuaca_realtime(kota):
         if not current:
             return None
 
-        # Weather code mapping (simplified)
         weather_code = current.get("weather_code", -1)
         weather_desc = get_weather_desc(weather_code)
 
@@ -103,34 +114,20 @@ def ambil_cuaca_realtime(kota):
         }
 
     except Exception as e:
-        print(f"  ❌ Gagal ambil {kota['kab_kota']}: {e}")
+        logger.error(f"Gagal ambil {kota['kab_kota']}: {e}")
+        metrics.record_error('producer', type(e).__name__)
         return None
 
 
 def get_weather_desc(code):
-    """Mapping weather code WMO ke deskripsi"""
     weather_map = {
-        0: "Cerah",
-        1: "Cerah Berawan",
-        2: "Cerah Berawan",
-        3: "Berawan",
-        45: "Berkabut",
-        48: "Berkabut",
-        51: "Gerimis Ringan",
-        53: "Gerimis Sedang",
-        55: "Gerimis Lebat",
-        61: "Hujan Ringan",
-        63: "Hujan Sedang",
-        65: "Hujan Lebat",
-        71: "Salju Ringan",
-        73: "Salju Sedang",
-        75: "Salju Lebat",
-        80: "Hujan Lokal Ringan",
-        81: "Hujan Lokal Sedang",
-        82: "Hujan Lokal Lebat",
-        95: "Badai Petir",
-        96: "Badai Petir + Hail",
-        99: "Badai Petir + Hail Lebat",
+        0: "Cerah", 1: "Cerah Berawan", 2: "Cerah Berawan", 3: "Berawan",
+        45: "Berkabut", 48: "Berkabut",
+        51: "Gerimis Ringan", 53: "Gerimis Sedang", 55: "Gerimis Lebat",
+        61: "Hujan Ringan", 63: "Hujan Sedang", 65: "Hujan Lebat",
+        71: "Salju Ringan", 73: "Salju Sedang", 75: "Salju Lebat",
+        80: "Hujan Lokal Ringan", 81: "Hujan Lokal Sedang", 82: "Hujan Lokal Lebat",
+        95: "Badai Petir", 96: "Badai Petir + Hail", 99: "Badai Petir + Hail Lebat",
     }
     return weather_map.get(code, "Tidak Diketahui")
 
@@ -140,43 +137,45 @@ def get_weather_desc(code):
 # =========================
 
 def main():
-    print("="*70)
-    print("OPEN-METEO REAL-TIME PRODUCER")
-    print("="*70)
-    print(f"Total kota: {len(DAFTAR_KOTA)}")
-    print(f"Topic: {TOPIC}")
-    print(f"Bootstrap: {BOOTSTRAP}")
-    print(f"Interval: {INTERVAL_STREAM} detik ({INTERVAL_STREAM//60} menit)")
-    print("="*70)
+    logger.info(
+        "Producer started",
+        topic=TOPIC, bootstrap=BOOTSTRAP,
+        interval=INTERVAL_STREAM, cities=len(DAFTAR_KOTA)
+    )
 
     while True:
         total = 0
 
-        print("" + "="*70)
-        print(f"Mulai polling : {datetime.now()}")
-        print("="*70)
+        logger.info("Mulai polling cuaca", cities=len(DAFTAR_KOTA))
 
         for kota in DAFTAR_KOTA:
-            hasil = ambil_cuaca_realtime(kota)
+            with metrics.processing_latency.labels(component='fetch_weather').time():
+                hasil = ambil_cuaca_realtime(kota)
 
             if hasil:
                 producer.send(TOPIC, hasil)
                 total += 1
 
-                print(
-                    f"[{total:03d}] "
-                    f"{hasil['provinsi']} | "
-                    f"{hasil['kab_kota']} | "
-                    f"{hasil['suhu']}°C | "
-                    f"{hasil['kondisi_cuaca']}"
+                metrics.update_weather_metrics(
+                    kota['kab_kota'],
+                    hasil.get('suhu') or 0,
+                    hasil.get('kecepatan_angin') or 0
                 )
+                metrics.record_message_processed(kota['kab_kota'], 'success')
 
-            # Hindari rate limit (Open-Meteo free: 10,000 calls/day)
+                logger.info(
+                    f"Sent: {hasil['provinsi']} - {hasil['kab_kota']} - {hasil['suhu']}C",
+                    provinsi=hasil['provinsi'], kab_kota=hasil['kab_kota'],
+                    suhu=hasil['suhu'], kondisi=hasil['kondisi_cuaca']
+                )
+            else:
+                metrics.record_message_processed(kota['kab_kota'], 'failed')
+
             time.sleep(0.5)
 
         producer.flush()
 
-        print(f"Total terkirim : {total}/{len(DAFTAR_KOTA)}")
+        logger.info(f"Polling selesai: {total}/{len(DAFTAR_KOTA)} terkirim")
         print(f"Menunggu {INTERVAL_STREAM//60} menit...")
 
         time.sleep(INTERVAL_STREAM)
